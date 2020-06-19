@@ -156,6 +156,30 @@ def is_whitespace(c):
   return c == " " or c == "\t" or c == "\r" or c == "\n" or ord(c) == 0x202F
 
 
+def is_chinese_char(cp):
+  """Checks whether CP is the codepoint of a CJK character."""
+  # This defines a "chinese character" as anything in the CJK Unicode block:
+  #   https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_(Unicode_block)
+  #
+  # Note that the CJK Unicode block is NOT all Japanese and Korean characters,
+  # despite its name. The modern Korean Hangul alphabet is a different block,
+  # as is Japanese Hiragana and Katakana. Those alphabets are used to write
+  # space-separated words, so they are not treated specially and handled
+  # like the all of the other languages.
+  cp = ord(cp)
+  if ((cp >= 0x4E00 and cp <= 0x9FFF) or  #
+        (cp >= 0x3400 and cp <= 0x4DBF) or  #
+        (cp >= 0x20000 and cp <= 0x2A6DF) or  #
+        (cp >= 0x2A700 and cp <= 0x2B73F) or  #
+        (cp >= 0x2B740 and cp <= 0x2B81F) or  #
+        (cp >= 0x2B820 and cp <= 0x2CEAF) or
+        (cp >= 0xF900 and cp <= 0xFAFF) or  #
+        (cp >= 0x2F800 and cp <= 0x2FA1F)):  #
+    return True
+
+  return False
+
+
 class QATask(task.Task):
   """A span-based question answering tasks (e.g., SQuAD)."""
 
@@ -173,16 +197,31 @@ class QATask(task.Task):
     doc_tokens = []
     char_to_word_offset = []
     prev_is_whitespace = True
-    for c in paragraph_text:
-      if is_whitespace(c):
-        prev_is_whitespace = True
-      else:
-        if prev_is_whitespace:
-          doc_tokens.append(c)
+    if self.name in ["sacqa", "cmrc2018"]:  # for chinese
+      prev_is_chinese = True
+      for c in paragraph_text:
+        if is_whitespace(c):
+          prev_is_whitespace = True
         else:
-          doc_tokens[-1] += c
-        prev_is_whitespace = False
-      char_to_word_offset.append(len(doc_tokens) - 1)
+          if prev_is_whitespace or prev_is_chinese or is_chinese_char(c):
+            doc_tokens.append(c)
+            prev_is_chinese = True if is_chinese_char(c) else False
+          else:
+            doc_tokens[-1] += c
+            prev_is_chinese = False
+          prev_is_whitespace = False
+        char_to_word_offset.append(len(doc_tokens) - 1)
+    else:
+      for c in paragraph_text:
+        if is_whitespace(c):
+          prev_is_whitespace = True
+        else:
+          if prev_is_whitespace:
+            doc_tokens.append(c)
+          else:
+            doc_tokens[-1] += c
+          prev_is_whitespace = False
+        char_to_word_offset.append(len(doc_tokens) - 1)
 
     for qa in paragraph["qas"]:
       qas_id = qa["id"] if "id" in qa else None
@@ -217,9 +256,15 @@ class QATask(task.Task):
           #
           # Note that this means for training mode, every example is NOT
           # guaranteed to be preserved.
-          actual_text = " ".join(
+          if self.name in ["sacqa", "cmrc2018"]:  # for chinese, no whitespace needed
+            actual_text = "".join(
               doc_tokens[start_position:(end_position + 1)])
-          cleaned_answer_text = " ".join(
+            cleaned_answer_text = "".join(
+              tokenization.whitespace_tokenize(orig_answer_text))
+          else:
+            actual_text = " ".join(
+              doc_tokens[start_position:(end_position + 1)])
+            cleaned_answer_text = " ".join(
               tokenization.whitespace_tokenize(orig_answer_text))
           actual_text = actual_text.lower()
           cleaned_answer_text = cleaned_answer_text.lower()

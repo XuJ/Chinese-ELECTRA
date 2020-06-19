@@ -203,8 +203,12 @@ class SpanBasedQAScorer(scorer.Scorer):
 
         # Clean whitespace
         tok_text = tok_text.strip()
-        tok_text = " ".join(tok_text.split())
-        orig_text = " ".join(orig_tokens)
+        if self._name in ["sacqa", "cmrc2018"]:  # for chinese, no whitespace needed
+          tok_text = "".join(tok_text.split())
+          orig_text = "".join(orig_tokens)
+        else:
+          tok_text = " ".join(tok_text.split())
+          orig_text = " ".join(orig_tokens)
 
         final_text = get_final_text(self._config, tok_text, orig_text)
         if final_text in seen_predictions:
