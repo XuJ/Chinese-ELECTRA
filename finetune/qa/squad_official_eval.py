@@ -58,18 +58,18 @@ def parse_args():
     sys.exit(1)
   return parser.parse_args()
 
-def set_opts(config: configure_finetuning.FinetuningConfig, split):
+def set_opts(config: configure_finetuning.FinetuningConfig, split, task_name="squad"):
   global OPTS
   Options = collections.namedtuple("Options", [
       "data_file", "pred_file", "out_file", "na_prob_file", "na_prob_thresh",
       "out_image_dir", "verbose"])
   OPTS = Options(
       data_file=os.path.join(
-          config.raw_data_dir("squad"),
+          config.raw_data_dir(task_name),
           split + ("-debug" if config.debug else "") + ".json"),
-      pred_file=config.qa_preds_file("squad"),
-      out_file=config.qa_eval_file("squad"),
-      na_prob_file=config.qa_na_file("squad"),
+      pred_file=config.qa_preds_file(task_name + "_" + split),
+      out_file=config.qa_eval_file(task_name),
+      na_prob_file=config.qa_na_file(task_name + "_" + split),
       na_prob_thresh=config.qa_na_threshold,
       out_image_dir=None,
       verbose=False

@@ -80,5 +80,7 @@ def get_task(config: configure_finetuning.FinetuningConfig, task_name,
     return qa_tasks.DRCD(config, tokenizer)
   elif task_name == "ccks42ec":
     return classification_tasks.CCKS42EC(config, tokenizer)
+  elif task_name == "ccks42ee":
+    return qa_tasks.CCKS42EE(config, tokenizer)
   else:
     raise ValueError("Unknown task " + task_name)

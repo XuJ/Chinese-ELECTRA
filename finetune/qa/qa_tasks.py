@@ -197,7 +197,7 @@ class QATask(task.Task):
     doc_tokens = []
     char_to_word_offset = []
     prev_is_whitespace = True
-    if self.name in ["sacqa", "cmrc2018"]:  # for chinese
+    if self.name in ["sacqa", "cmrc2018", "ccks42ee"]:  # for chinese
       prev_is_chinese = True
       for c in paragraph_text:
         if is_whitespace(c):
@@ -256,7 +256,7 @@ class QATask(task.Task):
           #
           # Note that this means for training mode, every example is NOT
           # guaranteed to be preserved.
-          if self.name in ["sacqa", "cmrc2018"]:  # for chinese, no whitespace needed
+          if self.name in ["sacqa", "cmrc2018", "ccks42ee"]:  # for chinese, no whitespace needed
             actual_text = "".join(
               doc_tokens[start_position:(end_position + 1)])
             cleaned_answer_text = "".join(
@@ -681,3 +681,9 @@ class CMRC2018(SQuADTask):
 class DRCD(SQuADTask):
   def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
     super(DRCD, self).__init__(config, "drcd", tokenizer)
+
+
+class CCKS42EE(SQuADTask):
+  """CCKS42 task part2 event extraction."""
+  def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
+    super(CCKS42EE, self).__init__(config, "ccks42ee", tokenizer, v2=True)
