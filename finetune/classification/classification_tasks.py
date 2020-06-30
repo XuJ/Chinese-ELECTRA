@@ -507,3 +507,21 @@ class LCQMC(ClassificationTask):
   def _create_examples(self, lines, split):
     return self._load_glue(lines, split, 0, 1, 2, skip_first_line=True)
 
+
+#
+class CCKS42EC(ClassificationTask):
+  """CCKS42 task part1 event classfication."""
+
+  def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
+    super(CCKS42EC, self).__init__(config, "ccks42ec", tokenizer,
+                                   ["重大资产损失", "股东减持", "股权质押", "高层死亡", "股权冻结", "股东增持", "重大对外赔付", "重大安全事故", "破产清算"])
+
+  def get_examples(self, split):
+    return self._create_examples(read_tsv(
+      os.path.join(self.config.raw_data_dir(self.name), split + ".tsv"),
+      max_lines=100 if self.config.debug else None), split)
+
+  def _create_examples(self, lines, split):
+    return self._load_glue(lines, split, 0, None, 1, skip_first_line=False)
+
+
