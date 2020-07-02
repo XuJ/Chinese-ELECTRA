@@ -197,7 +197,7 @@ class ModelRunner(object):
     eval_input_fn, _ = self._preprocessor.prepare_predict([task], split)
     results = self._estimator.predict(input_fn=eval_input_fn,
                                       yield_single_examples=True)
-    if task.name == "cmrc2018" or task.name == "drcd":
+    if task.name in ["squad", "squadv1", "newsqa", "naturalqs", "triviaqa", "searchqa", "cmrc2018", "drcd", "ccks42ec", "ccks42ee"]:
       scorer = task.get_scorer(split)
     else:
       scorer = task.get_scorer()
@@ -340,6 +340,18 @@ def run_finetuning(config: configure_finetuning.FinetuningConfig):
             #utils.write_json(preds, config.test_predictions(task.name, "eval", trial))
             if config.num_trials > 1:
               utils.write_json(preds, config.qa_preds_file(task.name+"_eval_"+str(trial)))
+          elif task.name == "ccks42ee":
+            scorer = model_runner.evaluate_task(task, "eval", False)
+            scorer.write_predictions()
+            preds = utils.load_json(config.qa_preds_file(task.name+"_eval"))
+            null_odds = utils.load_json(config.qa_na_file(task.name+"_eval"))
+            for q, _ in preds.items():
+              if null_odds[q] > config.qa_na_threshold:
+                preds[q] = ""
+            utils.write_json(preds, config.qa_preds_file(task.name+"_eval_"+str(trial)))
+          elif task.name == "ccks42ec":
+            scorer = model_runner.evaluate_task(task, "eval", False)
+            scorer.write_predictions()
           else:
             utils.log("Skipping task", task.name,
                       "- writing predictions is not supported for this task")

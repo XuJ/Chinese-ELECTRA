@@ -162,7 +162,7 @@ class SingleOutputTask(task.Task):
           text_b = None
         else:
           text_b = tokenization.convert_to_unicode(line[text_b_loc])
-        if "test" in split or "diagnostic" in split:
+        if "test" in split or "diagnostic" in split or "eval" in split:
           label = self._get_dummy_label()
         else:
           label = tokenization.convert_to_unicode(line[label_loc])
@@ -514,7 +514,12 @@ class CCKS42EC(ClassificationTask):
 
   def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
     super(CCKS42EC, self).__init__(config, "ccks42ec", tokenizer,
-                                   ["重大资产损失", "股东减持", "股权质押", "高层死亡", "股权冻结", "股东增持", "重大对外赔付", "重大安全事故", "破产清算"])
+                                   ["重大资产损失_1", "重大资产损失_2", "重大资产损失_3", "重大资产损失_4", "重大资产损失_5", "股东减持_1", "股东减持_2",
+                                    "股东减持_3", "股东减持_4", "股东减持_5", "股权质押_1", "股权质押_2", "股权质押_3", "股权质押_4", "股权质押_5",
+                                    "高层死亡_1", "高层死亡_2", "高层死亡_3", "高层死亡_4", "高层死亡_5", "股权冻结_1", "股权冻结_2", "股权冻结_3",
+                                    "股权冻结_4", "股权冻结_5", "股东增持_1", "股东增持_2", "股东增持_3", "股东增持_4", "股东增持_5", "重大对外赔付_1",
+                                    "重大对外赔付_2", "重大对外赔付_3", "重大对外赔付_4", "重大对外赔付_5", "重大安全事故_1", "重大安全事故_2", "重大安全事故_3",
+                                    "重大安全事故_4", "重大安全事故_5", "破产清算_1", "破产清算_2", "破产清算_3", "破产清算_4", "破产清算_5"])
 
   def get_examples(self, split):
     return self._create_examples(read_tsv(
@@ -523,5 +528,11 @@ class CCKS42EC(ClassificationTask):
 
   def _create_examples(self, lines, split):
     return self._load_glue(lines, split, 0, None, 1, skip_first_line=False)
+
+  def get_label_list(self):
+    return self._label_list
+
+  def get_scorer(self, split="dev"):
+    return classification_metrics.ModifiedAccuracyScorer(self.config, self, split)
 
 

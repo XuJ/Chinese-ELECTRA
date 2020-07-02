@@ -19,12 +19,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import abc
 import numpy as np
 import scipy
 import sklearn
+import configure_finetuning
 
 from finetune import scorer
+from util import utils
 
 
 class SentenceLevelScorer(scorer.Scorer):
@@ -90,6 +93,47 @@ class F1Scorer(SentenceLevelScorer):
         ('f1', f1),
         ('loss', self.get_loss()),
     ]
+
+
+class ModifiedAccuracyScorer(SentenceLevelScorer):
+  """Computes Modified Accuracy Score for classification tasks."""
+
+  def __init__(self, config: configure_finetuning.FinetuningConfig, task, split):
+    super(ModifiedAccuracyScorer, self).__init__()
+    self._positive_label = 1
+    self._config = config
+    self._task = task
+    self._name = task.name
+    self._split = split
+    self._eval_examples = task.get_examples(split)
+    self._label_list = task.get_label_list()
+
+  def _get_results(self):
+    self.write_predictions()
+    correct, count = 0, 0
+    for y_true, pred in zip(self._true_labels, self._preds):
+      count += 1
+      correct += (1 if y_true == pred else 0)
+    return [
+      ('accuracy', 100.0 * correct / count),
+      ('loss', self.get_loss()),
+    ]
+
+  def write_predictions(self):
+    """Write final predictions to the json file."""
+    all_predictions = collections.OrderedDict()
+    unique_id_to_text_a = {}
+    label_id_to_label_text = {}
+    for example in self._eval_examples:
+      unique_id_to_text_a[example.eid] = example.text_a
+    for label_id, label_text in enumerate(self._label_list):
+      label_id_to_label_text[label_id] = label_text
+    for eid, pred in zip(self._eid, self._preds):
+      text_a = unique_id_to_text_a[eid]
+      label_text = label_id_to_label_text[int(pred)]
+      all_predictions[text_a] = label_text
+    utils.write_json(dict(all_predictions),
+                     self._config.cl_preds_file(self._name+"_"+self._split))
 
 
 class MCCScorer(SentenceLevelScorer):
