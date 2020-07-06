@@ -40,6 +40,7 @@ class SentenceLevelScorer(scorer.Scorer):
     self._total_loss = 0
     self._true_labels = []
     self._preds = []
+    self._eid = []
 
   def update(self, results):
     super(SentenceLevelScorer, self).update(results)
@@ -47,6 +48,7 @@ class SentenceLevelScorer(scorer.Scorer):
     self._true_labels.append(results['label_ids'] if 'label_ids' in results
                              else results['targets'])
     self._preds.append(results['predictions'])
+    self._eid.append(results['eid'])
 
   def get_loss(self):
     return self._total_loss / len(self._true_labels)
