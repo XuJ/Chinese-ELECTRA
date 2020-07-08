@@ -118,8 +118,10 @@ class FinetuningConfig(object):
                                     task_names_str + "_results.txt")
     self.results_pkl = os.path.join(results_dir,
                                     task_names_str + "_results.pkl")
+    ner_topdir = os.path.join(results_dir, task_names_str + "_ner")
     cl_topdir = os.path.join(results_dir, task_names_str + "_cl")
     qa_topdir = os.path.join(results_dir, task_names_str + "_qa")
+    self.ner_preds_file = os.path.join(ner_topdir, "{:}_preds.json").format
     self.cl_preds_file = os.path.join(cl_topdir, "{:}_preds.json").format
     self.qa_eval_file = os.path.join(qa_topdir, "{:}_eval.json").format
     self.qa_preds_file = os.path.join(qa_topdir, "{:}_preds.json").format

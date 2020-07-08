@@ -52,7 +52,6 @@ class SpanBasedQAScorer(scorer.Scorer):
     self._v2 = v2
     self._all_results = []
     self._total_loss = 0
-    self._split = split
     self._eval_examples = task.get_examples(split)
 
   def update(self, results):
