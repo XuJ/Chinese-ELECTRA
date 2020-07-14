@@ -129,7 +129,7 @@ class TaggingTask(task.Task):
     input_ids = []
     tagged_positions = []
     for word_tokens in words_to_tokens:
-      if len(words_to_tokens) + len(input_ids) + 1 > self.config.max_seq_length:
+      if len(word_tokens) + len(input_ids) + 1 > self.config.max_seq_length:
         input_ids.append(self._tokenizer.vocab["[SEP]"])
         break
       if "[CLS]" not in word_tokens and "[SEP]" not in word_tokens:
