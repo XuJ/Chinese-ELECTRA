@@ -508,7 +508,6 @@ class LCQMC(ClassificationTask):
     return self._load_glue(lines, split, 0, 1, 2, skip_first_line=True)
 
 
-#
 class CCKS42EC(ClassificationTask):
   """CCKS42 task part1 event classfication."""
 
@@ -520,6 +519,28 @@ class CCKS42EC(ClassificationTask):
     #                                 "重大安全事故_1", "破产清算_1"])
     super(CCKS42EC, self).__init__(config, "ccks42ec", tokenizer,
                                    ['重大资产损失', '高层死亡', '重大对外赔付', '重大安全事故', '破产清算', '股东减持', '股权质押', '股权冻结', '股东增持'])
+
+  def get_examples(self, split):
+    return self._create_examples(read_tsv(
+      os.path.join(self.config.raw_data_dir(self.name), split + ".tsv"),
+      max_lines=100 if self.config.debug else None), split)
+
+  def _create_examples(self, lines, split):
+    return self._load_glue(lines, split, 0, None, 1, skip_first_line=False)
+
+  def get_label_list(self):
+    return self._label_list
+
+  def get_scorer(self, split="dev"):
+    return classification_metrics.ModifiedAccuracyScorer(self.config, self, split)
+
+
+class CCKS42NUM(ClassificationTask):
+  """CCKS42 task part1 event number classfication."""
+
+  def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
+    super(CCKS42NUM, self).__init__(config, "ccks42num", tokenizer,
+                                   ['1', '2', '3', '4', '5'])
 
   def get_examples(self, split):
     return self._create_examples(read_tsv(

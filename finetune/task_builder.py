@@ -84,5 +84,7 @@ def get_task(config: configure_finetuning.FinetuningConfig, task_name,
     return qa_tasks.CCKS42EE(config, tokenizer)
   elif task_name == "ner":
     return tagging_tasks.Ner(config, tokenizer)
+  elif task_name == "ccks42num":
+    return classification_tasks.CCKS42NUM(config, tokenizer)
   else:
     raise ValueError("Unknown task " + task_name)

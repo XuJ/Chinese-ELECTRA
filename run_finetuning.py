@@ -200,7 +200,7 @@ class ModelRunner(object):
     eval_input_fn, _ = self._preprocessor.prepare_predict([task], split)
     results = self._estimator.predict(input_fn=eval_input_fn,
                                       yield_single_examples=True)
-    if task.name in ["squad", "squadv1", "newsqa", "naturalqs", "triviaqa", "searchqa", "cmrc2018", "drcd", "ccks42ec", "ccks42ee", "ner"]:
+    if task.name in ["squad", "squadv1", "newsqa", "naturalqs", "triviaqa", "searchqa", "cmrc2018", "drcd", "ccks42ec", "ccks42ee", "ner", "ccks42num"]:
       scorer = task.get_scorer(split)
     else:
       scorer = task.get_scorer()
@@ -353,7 +353,7 @@ def run_finetuning(config: configure_finetuning.FinetuningConfig):
               if null_odds[q] > config.qa_na_threshold:
                 preds[q] = ""
             utils.write_json(preds, config.qa_preds_file(task.name+"_eval_"+str(trial)))
-          elif task.name == "ccks42ec" or task.name == "ner":
+          elif task.name == "ccks42ec" or task.name == "ner" or task.name == "ccks42num":
             scorer = model_runner.evaluate_task(task, "eval", False)
             scorer.write_predictions()
           else:
