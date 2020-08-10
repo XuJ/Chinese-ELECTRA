@@ -275,8 +275,9 @@ class QATask(task.Task):
           actual_text = actual_text.lower()
           cleaned_answer_text = cleaned_answer_text.lower()
           if actual_text.find(cleaned_answer_text) == -1:
-            utils.log("Could not find answer: '{:}' in doc vs. "
+            utils.log("Could not find answer: '{:}': '{:}' in doc vs. "
                       "'{:}' in provided answer".format(
+                          qas_id,
                           tokenization.printable_text(actual_text),
                           tokenization.printable_text(cleaned_answer_text)))
             example_failures[0] += 1

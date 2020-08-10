@@ -75,12 +75,15 @@ def set_opts(config: configure_finetuning.FinetuningConfig, split, task_name="sq
       verbose=False
   )
 
-def make_qid_to_has_ans(dataset):
+def make_qid_to_has_ans(dataset, preds):
   qid_to_has_ans = {}
   for article in dataset:
     for p in article['paragraphs']:
       for qa in p['qas']:
-        qid_to_has_ans[qa['id']] = bool(qa['answers'])
+        qid = qa['id']
+        if qid not in preds:
+          continue
+        qid_to_has_ans[qid] = bool(qa['answers'])
   return qid_to_has_ans
 
 def normalize_answer(s):
@@ -284,7 +287,7 @@ def main():
       na_probs = json.load(f)
   else:
     na_probs = {k: 0.0 for k in preds}
-  qid_to_has_ans = make_qid_to_has_ans(dataset)  # maps qid to True/False
+  qid_to_has_ans = make_qid_to_has_ans(dataset, preds)  # maps qid to True/False
   has_ans_qids = [k for k, v in qid_to_has_ans.items() if v]
   no_ans_qids = [k for k, v in qid_to_has_ans.items() if not v]
   exact_raw, f1_raw = get_raw_scores(dataset, preds)
