@@ -690,6 +690,18 @@ class DRCD(SQuADTask):
 
 
 class CCKS42EE(SQuADTask):
-  """CCKS42 task part2 event extraction."""
+  """CCKS42 task part2 full event extraction."""
   def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
     super(CCKS42EE, self).__init__(config, "ccks42ee", tokenizer, v2=True)
+
+
+class CCKS42SINGLE(SQuADTask):
+  """CCKS42 task part2 single event extraction."""
+  def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
+    super(CCKS42SINGLE, self).__init__(config, "ccks42single", tokenizer, v2=True)
+
+
+class CCKS42MULTI(SQuADTask):
+  """CCKS42 task part2 multi event extraction."""
+  def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
+    super(CCKS42MULTI, self).__init__(config, "ccks42multi", tokenizer, v2=True)

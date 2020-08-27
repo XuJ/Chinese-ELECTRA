@@ -200,7 +200,7 @@ class ModelRunner(object):
     eval_input_fn, _ = self._preprocessor.prepare_predict([task], split)
     results = self._estimator.predict(input_fn=eval_input_fn,
                                       yield_single_examples=True)
-    if task.name in ["squad", "squadv1", "newsqa", "naturalqs", "triviaqa", "searchqa", "cmrc2018", "drcd", "ccks42ec", "ccks42ee", "ner", "ccks42num"]:
+    if task.name in ["squad", "squadv1", "newsqa", "naturalqs", "triviaqa", "searchqa", "cmrc2018", "drcd", "ccks42ec", "ccks42ee", "ccks42single", "ccks42multi", "ner", "ccks42num"]:
       scorer = task.get_scorer(split)
     else:
       scorer = task.get_scorer()
@@ -344,7 +344,7 @@ def run_finetuning(config: configure_finetuning.FinetuningConfig):
             #utils.write_json(preds, config.test_predictions(task.name, "eval", trial))
             if config.num_trials > 1:
               utils.write_json(preds, config.qa_preds_file(task.name+"_eval_"+str(trial)))
-          elif task.name == "ccks42ee":
+          elif task.name == "ccks42ee" or task.name == "ccks42single" or task.name == "ccks42multi":
             scorer = model_runner.evaluate_task(task, "eval", False)
             scorer.write_predictions()
             preds = utils.load_json(config.qa_preds_file(task.name+"_eval"))

@@ -82,6 +82,10 @@ def get_task(config: configure_finetuning.FinetuningConfig, task_name,
     return classification_tasks.CCKS42EC(config, tokenizer)
   elif task_name == "ccks42ee":
     return qa_tasks.CCKS42EE(config, tokenizer)
+  elif task_name == "ccks42single":
+    return qa_tasks.CCKS42SINGLE(config, tokenizer)
+  elif task_name == "ccks42multi":
+    return qa_tasks.CCKS42MULTI(config, tokenizer)
   elif task_name == "ner":
     return tagging_tasks.Ner(config, tokenizer)
   elif task_name == "ccks42num":
