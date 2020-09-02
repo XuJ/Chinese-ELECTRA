@@ -160,3 +160,42 @@ class RegressionScorer(SentenceLevelScorer):
         ('mse', np.mean(np.square(np.array(self._true_labels) - self._preds))),
         ('loss', self.get_loss()),
     ]
+
+
+class ModifiedRegressionScorer(SentenceLevelScorer):
+  """Computes Modified Regression Score for regression tasks."""
+
+  def __init__(self, config: configure_finetuning.FinetuningConfig, task, split):
+    super(ModifiedRegressionScorer, self).__init__()
+    self._config = config
+    self._task = task
+    self._name = task.name
+    self._min_value, self._max_value = task.get_min_max_value()
+    self._split = split
+    self._eval_examples = task.get_examples(split)
+
+  def _get_results(self):
+    self.write_predictions()
+    preds = np.array(self._preds).flatten()
+    return [
+      ('pearson', 100.0 * scipy.stats.pearsonr(
+        self._true_labels, preds)[0]),
+      ('spearman', 100.0 * scipy.stats.spearmanr(
+        self._true_labels, preds)[0]),
+      ('mse', np.mean(np.square(np.array(self._true_labels) - self._preds))),
+      ('loss', self.get_loss()),
+    ]
+
+  def write_predictions(self):
+    """Write final predictions to the json file."""
+    all_predictions = collections.OrderedDict()
+    unique_id_to_text_a = {}
+    for example in self._eval_examples:
+      unique_id_to_text_a[example.eid] = example.text_a
+    for eid, pred in zip(self._eid, self._preds):
+      text_a = unique_id_to_text_a[eid]
+      org_pred = pred * (self._max_value - self._min_value) + self._min_value
+      all_predictions[text_a] = round(org_pred)
+    utils.write_json(dict(all_predictions),
+      self._config.cl_preds_file(self._name+"_"+self._split))
+

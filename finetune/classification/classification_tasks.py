@@ -557,3 +557,36 @@ class CCKS42NUM(ClassificationTask):
     return classification_metrics.ModifiedAccuracyScorer(self.config, self, split)
 
 
+class CCKS42REG(RegressionTask):
+  """CCKS42 task part1 event number regression."""
+
+  def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
+    super(CCKS42REG, self).__init__(config, "ccks42reg", tokenizer, 1, 5)
+
+  def _get_dummy_label(self):
+    return 1.0
+
+  def _add_features(self, features, example, log):
+    label = float(example.label)
+    assert self._min_value <= label <= self._max_value
+    # simple normalization of the label
+    label = (label - self._min_value) / (self._max_value - self._min_value)
+    if log:
+      utils.log("    label: {:}".format(label))
+    features[example.task_name + "_targets"] = label
+
+  def get_examples(self, split):
+    return self._create_examples(read_tsv(
+      os.path.join(self.config.raw_data_dir(self.name), split + ".tsv"),
+      max_lines=100 if self.config.debug else None), split)
+
+  def _create_examples(self, lines, split):
+    return self._load_glue(lines, split, 0, None, 1, skip_first_line=False)
+
+  def get_min_max_value(self):
+    return self._min_value, self._max_value
+
+  def get_scorer(self, split="dev"):
+    return classification_metrics.ModifiedRegressionScorer(self.config, self, split)
+
+
