@@ -561,7 +561,7 @@ class CCKS42REG(RegressionTask):
   """CCKS42 task part1 event number regression."""
 
   def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
-    super(CCKS42REG, self).__init__(config, "ccks42reg", tokenizer, 1, 5)
+    super(CCKS42REG, self).__init__(config, "ccks42reg", tokenizer, 1, 60)
 
   def _get_dummy_label(self):
     return 1.0
