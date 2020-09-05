@@ -195,7 +195,7 @@ class ModifiedRegressionScorer(SentenceLevelScorer):
     for eid, pred in zip(self._eid, self._preds):
       text_a = unique_id_to_text_a[eid]
       org_pred = pred * (self._max_value - self._min_value) + self._min_value
-      all_predictions[text_a] = round(org_pred)
+      all_predictions[text_a] = max(1, round(org_pred))
     utils.write_json(dict(all_predictions),
       self._config.cl_preds_file(self._name+"_"+self._split))
 
