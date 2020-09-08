@@ -22,6 +22,7 @@ from __future__ import print_function
 import json
 import pickle
 import sys
+import datetime
 
 import tensorflow.compat.v1 as tf
 
@@ -67,6 +68,7 @@ def rmkdir(path):
 
 def log(*args):
   msg = " ".join(map(str, args))
+  msg = datetime.datetime.strftime(datetime.datetime.today(), "%Y/%m/%d %H:%M:%S ") + msg
   sys.stdout.write(msg + "\n")
   sys.stdout.flush()
 
