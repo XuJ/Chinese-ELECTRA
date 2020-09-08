@@ -203,7 +203,7 @@ class QATask(task.Task):
     doc_tokens = []
     char_to_word_offset = []
     prev_is_whitespace = True
-    if self.name in ["sacqa", "cmrc2018", "ccks42ee"]:  # for chinese
+    if self.name in ["sacqa", "cmrc2018", "ccks42ee", "ccks42single", "ccks42multi"]:  # for chinese
       prev_is_chinese = True
       for c in paragraph_text:
         if is_whitespace(c):
@@ -262,7 +262,7 @@ class QATask(task.Task):
           #
           # Note that this means for training mode, every example is NOT
           # guaranteed to be preserved.
-          if self.name in ["sacqa", "cmrc2018", "ccks42ee"]:  # for chinese, no whitespace needed
+          if self.name in ["sacqa", "cmrc2018", "ccks42ee", "ccks42single", "ccks42multi"]:  # for chinese, no whitespace needed
             actual_text = "".join(
               doc_tokens[start_position:(end_position + 1)])
             cleaned_answer_text = "".join(

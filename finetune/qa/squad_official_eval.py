@@ -139,11 +139,9 @@ def get_raw_scores(dataset, preds):
         # Take max over all gold answers
         exact_scores[qid] = max(compute_exact(a, a_pred) for a in gold_answers)
         f1_scores[qid] = max(compute_f1(a, a_pred) for a in gold_answers)
-        print('#'*30)
         for a in gold_answers:
           if normalize_answer(a) != normalize_answer(a_pred):
-            print("{}_{}: {}!={}".format(qid, question_text, normalize_answer(a), normalize_answer(a_pred)))
-        print('#'*30)
+            print("{}_{}: gold {} != predicted {}".format(qid, question_text, normalize_answer(a), normalize_answer(a_pred)))
   return exact_scores, f1_scores
 
 def apply_no_ans_threshold(scores, na_probs, qid_to_has_ans, na_prob_thresh):

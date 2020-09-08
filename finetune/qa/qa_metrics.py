@@ -74,12 +74,12 @@ class SpanBasedQAScorer(scorer.Scorer):
 
   def _get_results(self):
     self.write_predictions()
-    if self._name == "squad" or self._name == "ccks42ee":
+    if self._name in ["squad", "ccks42ee", "ccks42single", "ccks42multi"]:
       squad_official_eval.set_opts(self._config, self._split, self._name)
       squad_official_eval.main()
       return sorted(utils.load_json(
           self._config.qa_eval_file(self._name)).items())
-    elif self._name == "squadv1" or self._name == "cmrc2018" or self._name == "drcd":
+    elif self._name in ["squadv1", "cmrc2018", "drcd"]:
       return sorted(squad_official_eval_v1.main(
           self._config, self._split, self._name).items())
     else:
@@ -102,7 +102,7 @@ class SpanBasedQAScorer(scorer.Scorer):
     scores_diff_json = collections.OrderedDict()
 
     for example in self._eval_examples:
-      example_id = example.qas_id if ("squad" in self._name or "cmrc2018" in self._name or "drcd" in self._name or "ccks42ee" in self._name) else example.qid
+      example_id = example.qas_id if (self._name in ["squad", "squadv1", "cmrc2018", "drcd", "ccks42ee", "ccks42single", "ccks42multi"]) else example.qid
       features = self._task.featurize(example, False, for_eval=True)
 
       prelim_predictions = []
@@ -202,7 +202,7 @@ class SpanBasedQAScorer(scorer.Scorer):
 
         # Clean whitespace
         tok_text = tok_text.strip()
-        if self._name in ["sacqa", "cmrc2018", "ccks42ee"]:  # for chinese, no whitespace needed
+        if self._name in ["sacqa", "cmrc2018", "ccks42ee", "ccks42single", "ccks42multi"]:  # for chinese, no whitespace needed
           tok_text = "".join(tok_text.split())
           orig_text = "".join(orig_tokens)
         else:

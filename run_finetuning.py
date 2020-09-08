@@ -344,7 +344,7 @@ def run_finetuning(config: configure_finetuning.FinetuningConfig):
             #utils.write_json(preds, config.test_predictions(task.name, "eval", trial))
             if config.num_trials > 1:
               utils.write_json(preds, config.qa_preds_file(task.name+"_eval_"+str(trial)))
-          elif task.name == "ccks42ee" or task.name == "ccks42single" or task.name == "ccks42multi":
+          elif task.name in ["ccks42ee", "ccks42single", "ccks42multi"]:
             scorer = model_runner.evaluate_task(task, "eval", False)
             scorer.write_predictions()
             preds = utils.load_json(config.qa_preds_file(task.name+"_eval"))
@@ -353,7 +353,7 @@ def run_finetuning(config: configure_finetuning.FinetuningConfig):
               if null_odds[q] > config.qa_na_threshold:
                 preds[q] = ""
             utils.write_json(preds, config.qa_preds_file(task.name+"_eval_"+str(trial)))
-          elif task.name == "ccks42ec" or task.name == "ner" or task.name == "ccks42num" or task.name == "ccks42reg":
+          elif task.name in ["ccks42ec", "ner", "ccks42num", "ccks42reg"]:
             scorer = model_runner.evaluate_task(task, "eval", False)
             scorer.write_predictions()
           else:
