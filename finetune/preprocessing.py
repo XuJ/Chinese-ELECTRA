@@ -96,7 +96,7 @@ class Preprocessor(object):
     n_examples = 0
     with tf.io.TFRecordWriter(output_file) as writer:
       for (ex_index, example) in enumerate(examples):
-        if ex_index % 10 == 0:
+        if ex_index % 2000 == 0:
           utils.log("Writing example {:} of {:}".format(
               ex_index, len(examples)))
         for tf_example in self._example_to_tf_example(
