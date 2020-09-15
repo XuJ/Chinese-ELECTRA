@@ -142,10 +142,37 @@ def get_raw_scores(dataset, preds):
         # Take max over all gold answers
         exact_scores[qid] = max(compute_exact(a, a_pred) for a in gold_answers)
         f1_scores[qid] = max(compute_f1(a, a_pred) for a in gold_answers)
-        for a in gold_answers:
-          if normalize_answer(a) != normalize_answer(a_pred):
-            print("{}_{}: gold {} != predicted {}".format(qid, question_text, normalize_answer(a), normalize_answer(a_pred)))
   return exact_scores, f1_scores
+
+def print_bad_case(dataset, preds, na_probs, na_prob_thresh):
+  new_preds = {}
+  bad_case_cnt = 0
+  total_cnt = 0
+  for qid, p in preds.items():
+    if na_probs[qid] > na_prob_thresh:
+      new_preds[qid] = ''
+    else:
+      new_preds[qid] = p
+  for article in dataset:
+    doc_id = article['title']
+    for p in article['paragraphs']:
+      for qa in p['qas']:
+        qid = qa['id']
+        question_text = qa["question"]
+        gold_answers = [a['text'] for a in qa['answers']
+          if normalize_answer(a['text'])]
+        if not gold_answers:
+          gold_answers = ['']
+        if qid not in new_preds:
+          continue
+        a_pred = new_preds[qid]
+        for a in gold_answers:
+          total_cnt += 1
+          if normalize_answer(a) != normalize_answer(a_pred):
+            bad_case_cnt += 1
+            print("{}_{}_{}: gold {} != predicted {}".format(doc_id, qid, question_text, normalize_answer(a), normalize_answer(a_pred)))
+  print("bad case count / total count: {} / {}".format(bad_case_cnt, total_cnt))
+
 
 def apply_no_ans_threshold(scores, na_probs, qid_to_has_ans, na_prob_thresh):
   new_scores = {}
@@ -314,6 +341,7 @@ def main():
       json.dump(out_eval, f)
   else:
     print(json.dumps(out_eval, indent=2))
+  print_bad_case(dataset, preds, na_probs, OPTS.na_prob_thresh)
 
 if __name__ == '__main__':
   OPTS = parse_args()
