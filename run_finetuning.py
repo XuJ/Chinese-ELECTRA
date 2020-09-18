@@ -284,7 +284,7 @@ def run_finetuning(config: configure_finetuning.FinetuningConfig):
       utils.log()
 
     if config.do_eval:
-      if config.write_test_outputs and trial <= config.n_writes_test:
+      if config.write_eval_outputs and trial <= config.n_writes_test:
         heading("Running on the dev set and writing the predictions")
         for task in tasks:
           # Currently only writing preds for GLUE and SQuAD 2.0 is supported
