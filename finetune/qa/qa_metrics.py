@@ -266,7 +266,7 @@ class SpanBasedQAScorer(scorer.Scorer):
 
     utils.write_json(dict(all_predictions),
                      self._config.qa_preds_file(self._name+"_"+self._split))
-    utils.write_json(dict(all_nbest_json),
+    utils.write_pickle(dict(all_nbest_json),
       self._config.qa_all_nbest_file(self._name+"_"+self._split))
 
     if self._v2:
