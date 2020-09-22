@@ -314,7 +314,7 @@ def run_finetuning(config: configure_finetuning.FinetuningConfig):
                       "- writing predictions is not supported for this task")
       else:
         heading("Run dev set evaluation")
-        results.append(model_runner.evaluate(split="train"))
+        # results.append(model_runner.evaluate(split="train"))
         results.append(model_runner.evaluate(split="dev"))
         write_results(config, results)
 
