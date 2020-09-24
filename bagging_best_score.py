@@ -13,7 +13,7 @@ from finetune.qa.squad_official_eval import main2
 from util import utils
 
 
-def eval_bagging_best_score(data_dir):
+def eval_bagging_best_score(data_dir, split):
   all_models = []
   for task_idx in ['', 2]:
     for batch_size in [24, 32]:
@@ -21,35 +21,33 @@ def eval_bagging_best_score(data_dir):
         for epoch in [2, 3]:
           model_name = "electra_ensemble{}_{}_{}_{}".format(task_idx, batch_size, max_seq_length, epoch)
           all_models.append(model_name)
-  models = [all_models[x] for x in [0, 1, 2, 3, 4, 5]]
+  models = [all_models[x] for x in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
 
   all_nbest = []
   all_odds = []
-  all_preds = []
   for dire in [os.path.join(data_dir, d) for d in models]:
-    all_nbest.append(utils.load_pickle(
-      (os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_all_nbest.pkl'))))
-    all_odds.append(utils.load_json(
-      (os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_null_odds.json'))))
-    all_preds.append(utils.load_json(
-      (os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_preds.json'))))
-  qids = seq(all_preds[0].keys()).list()
+    all_nbest.append(utils.load_pickle((os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa',
+      'ccks42ee_{}_all_nbest.pkl'.format(split)))))
+    all_odds.append(utils.load_json((os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa',
+      'ccks42ee_{}_null_odds.json'.format(split)))))
 
   qid_answers = collections.OrderedDict()
   qid_questions = collections.OrderedDict()
-  dataset = utils.load_json((os.path.join(data_dir, 'electra_ensemble', 'finetuning_data', 'ccks42ee', 'dev.json')))[
-    'data']
+  dataset = utils.load_json(
+    (os.path.join(data_dir, 'electra_ensemble', 'finetuning_data', 'ccks42ee', '{}.json'.format(split))))['data']
   for article in dataset:
     for paragraph in article["paragraphs"]:
       for qa in paragraph['qas']:
         _qid = qa['id']
-        qid_answers[_qid] = qa['answers']
+        qid_answers[_qid] = qa['answers'] if 'answers' in qa else ''
         qid_questions[_qid] = qa['question']
 
   all_nbest = filter_short_ans(all_nbest)
-  vote1(dataset, all_nbest, all_odds, qid_answers)
-  vote2(dataset, all_nbest, all_odds, qid_answers)
-  vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_questions, models)
+  output_dir = os.path.join(data_dir, 'electra_best', 'models', 'electra_large', 'results', 'ccks42bagging')
+
+  vote1(dataset, all_nbest, all_odds, qid_answers, split, output_dir)
+  vote2(dataset, all_nbest, all_odds, qid_answers, split, output_dir)
+  vote3(dataset, all_nbest, all_odds, qid_answers, qid_questions, models, split, output_dir)
 
 
 def filter_short_ans(all_nbest):
@@ -63,7 +61,7 @@ def filter_short_ans(all_nbest):
   return all_nbest
 
 
-def vote1(dataset, all_nbest, all_odds, qid_answers):
+def vote1(dataset, all_nbest, all_odds, qid_answers, split, output_dir):
   bagging_preds = collections.OrderedDict()
   bagging_odds = collections.OrderedDict()
 
@@ -72,15 +70,23 @@ def vote1(dataset, all_nbest, all_odds, qid_answers):
       (seq([nbest[qid][0] for nbest in all_nbest]).sorted(key=lambda x: x['probability'])).list()[-1]['text']
     bagging_odds[qid] = np.mean([odds[qid] for odds in all_odds])
 
-  # json.dump(bagging_preds, open('bagging_preds.json', 'w', encoding='utf-8'))
-  # json.dump(bagging_odds, open('bagging_odds.json', 'w', encoding='utf-8'))
+  utils.write_json(bagging_preds, os.path.join(output_dir, 'vote1', 'ccks42bagging_{}_preds.json'.format(split)))
+  utils.write_json(bagging_odds, os.path.join(output_dir, 'vote1', 'ccks42bagging_{}_null_odds.json'.format(split)))
 
-  out_eval = main2(dataset, bagging_preds, bagging_odds)
-  utils.log('vote1')
-  utils.log(out_eval)
+  if split in ['train', 'dev']:
+    out_eval = main2(dataset, bagging_preds, bagging_odds)
+    utils.log('vote1')
+    utils.log(out_eval)
+  elif split == 'eval':
+    for qid in bagging_preds.keys():
+      if bagging_odds[qid] > -2.75:
+        bagging_preds[qid] = ""
+    utils.write_json(bagging_preds, os.path.join(output_dir, 'vote1', 'ccks42bagging_{}_1_preds.json'.format(split)))
+  else:
+    utils.log('{} split is not supported'.format(split))
 
 
-def vote2(dataset, all_nbest, all_odds, qid_answers):
+def vote2(dataset, all_nbest, all_odds, qid_answers, split, output_dir):
   bagging_preds = collections.OrderedDict()
   bagging_odds = collections.OrderedDict()
 
@@ -94,15 +100,23 @@ def vote2(dataset, all_nbest, all_odds, qid_answers):
 
     bagging_odds[qid] = np.mean([odds[qid] for odds in all_odds])
 
-  # json.dump(bagging_preds, open('bagging_preds.json', 'w', encoding='utf-8'))
-  # json.dump(bagging_odds, open('bagging_odds.json', 'w', encoding='utf-8'))
+  utils.write_json(bagging_preds, os.path.join(output_dir, 'vote2', 'ccks42bagging_{}_preds.json'.format(split)))
+  utils.write_json(bagging_odds, os.path.join(output_dir, 'vote2', 'ccks42bagging_{}_null_odds.json'.format(split)))
 
-  out_eval = main2(dataset, bagging_preds, bagging_odds)
-  utils.log('vote2')
-  utils.log(out_eval)
+  if split in ['train', 'dev']:
+    out_eval = main2(dataset, bagging_preds, bagging_odds)
+    utils.log('vote2')
+    utils.log(out_eval)
+  elif split == 'eval':
+    for qid in bagging_preds.keys():
+      if bagging_odds[qid] > -2.75:
+        bagging_preds[qid] = ""
+    utils.write_json(bagging_preds, os.path.join(output_dir, 'vote2', 'ccks42bagging_{}_1_preds.json'.format(split)))
+  else:
+    utils.log('{} split is not supported'.format(split))
 
 
-def vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_questions, models):
+def vote3(dataset, all_nbest, all_odds, qid_answers, qid_questions, models, split, output_dir):
   bagging_preds = collections.OrderedDict()
   bagging_odds = collections.OrderedDict()
 
@@ -141,16 +155,28 @@ def vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_que
     bagging_odds[qid] = np.mean(
       [odds[qid] * cof if 'lr_epoch_results' in model else odds[qid] for odds, model in zip(all_odds, models)])
 
-  out_eval = main2(dataset, bagging_preds, bagging_odds)
-  utils.log('vote_with_post_processing')
-  utils.log(out_eval)
+  utils.write_json(bagging_preds, os.path.join(output_dir, 'vote3', 'ccks42bagging_{}_preds.json'.format(split)))
+  utils.write_json(bagging_odds, os.path.join(output_dir, 'vote3', 'ccks42bagging_{}_null_odds.json'.format(split)))
+
+  if split in ['train', 'dev']:
+    out_eval = main2(dataset, bagging_preds, bagging_odds)
+    utils.log('vote3')
+    utils.log(out_eval)
+  elif split == 'eval':
+    for qid in bagging_preds.keys():
+      if bagging_odds[qid] > -2.75:
+        bagging_preds[qid] = ""
+    utils.write_json(bagging_preds, os.path.join(output_dir, 'vote3', 'ccks42bagging_{}_1_preds.json'.format(split)))
+  else:
+    utils.log('{} split is not supported'.format(split))
 
 
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", required=True, help="location of all models")
+  parser.add_argument("--split", required=True, help="dataset: train/dev/eval dataset")
   args = parser.parse_args()
-  eval_bagging_best_score(args.dir)
+  eval_bagging_best_score(args.dir, args.split)
 
 
 if __name__ == '__main__':
