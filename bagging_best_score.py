@@ -4,14 +4,13 @@
 # @email   : jiaoxu@myhexin.com
 import argparse
 import collections
-import json
 import os
-import pickle
 
 import numpy as np
 from functional import seq
 
 from finetune.qa.squad_official_eval import main2
+from util import utils
 
 
 def eval_bagging_best_score(data_dir):
@@ -28,21 +27,17 @@ def eval_bagging_best_score(data_dir):
   all_odds = []
   all_preds = []
   for dire in [os.path.join(data_dir, d) for d in models]:
-    all_nbest.append(pickle.load(
-      open(os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_all_nbest.pkl'),
-        'rb')))
-    all_odds.append(json.load(
-      open(os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_null_odds.json'), 'r',
-        encoding='utf-8')))
-    all_preds.append(json.load(
-      open(os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_preds.json'), 'r',
-        encoding='utf-8')))
+    all_nbest.append(utils.load_pickle(
+      (os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_all_nbest.pkl'))))
+    all_odds.append(utils.load_json(
+      (os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_null_odds.json'))))
+    all_preds.append(utils.load_json(
+      (os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa', 'ccks42ee_dev_preds.json'))))
   qids = seq(all_preds[0].keys()).list()
 
   qid_answers = collections.OrderedDict()
   qid_questions = collections.OrderedDict()
-  dataset = json.load(
-    open(os.path.join(data_dir, 'electra_ensemble', 'finetuning_data', 'ccks42ee', 'dev.json'), 'r', encoding='utf-8'))[
+  dataset = utils.load_json((os.path.join(data_dir, 'electra_ensemble', 'finetuning_data', 'ccks42ee', 'dev.json')))[
     'data']
   for article in dataset:
     for paragraph in article["paragraphs"]:
@@ -50,9 +45,9 @@ def eval_bagging_best_score(data_dir):
         _qid = qa['id']
         qid_answers[_qid] = qa['answers']
         qid_questions[_qid] = qa['question']
-  vote1(dataset, qid_answers, all_nbest, all_odds, qid_answers)
-  # vote2(dataset, qid_answers, all_nbest, all_odds, qid_answers)
-  # vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_questions, models):
+  vote1(dataset, all_nbest, all_odds, qid_answers)
+  vote2(dataset, all_nbest, all_odds, qid_answers)
+  vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_questions, models)
 
 
 def vote1(dataset, all_nbest, all_odds, qid_answers):
@@ -64,14 +59,15 @@ def vote1(dataset, all_nbest, all_odds, qid_answers):
 
   for qid in qid_answers:
     bagging_preds[qid] = \
-    (seq([nbest[qid][0] for nbest in all_nbest]).sorted(key=lambda x: x['probability'])).list()[-1]['text']
+      (seq([nbest[qid][0] for nbest in all_nbest]).sorted(key=lambda x: x['probability'])).list()[-1]['text']
     bagging_odds[qid] = np.mean([odds[qid] for odds in all_odds])
 
   # json.dump(bagging_preds, open('bagging_preds.json', 'w', encoding='utf-8'))
   # json.dump(bagging_odds, open('bagging_odds.json', 'w', encoding='utf-8'))
 
   out_eval = main2(dataset, bagging_preds, bagging_odds)
-  print(out_eval)
+  utils.log('vote1')
+  utils.log(out_eval)
 
 
 def vote2(dataset, all_nbest, all_odds, qid_answers):
@@ -92,7 +88,8 @@ def vote2(dataset, all_nbest, all_odds, qid_answers):
   # json.dump(bagging_odds, open('bagging_odds.json', 'w', encoding='utf-8'))
 
   out_eval = main2(dataset, bagging_preds, bagging_odds)
-  print(out_eval)
+  utils.log('vote2')
+  utils.log(out_eval)
 
 
 def vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_questions, models):
@@ -123,8 +120,8 @@ def vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_que
   for qid in qid_answers:
     question = qid_questions[qid]
     post_process_candidates = (
-    seq(zip(all_nbest, models)).map(lambda x: (x[0][qid], cof if 'lr_epoch_results' in x[1] else 1.)).map(
-      lambda x: seq(x[0]).map(lambda y: post_process(question, y, x[1])).list()).flatten()).list()
+      seq(zip(all_nbest, models)).map(lambda x: (x[0][qid], cof if 'lr_epoch_results' in x[1] else 1.)).map(
+        lambda x: seq(x[0]).map(lambda y: post_process(question, y, x[1])).list()).flatten()).list()
     preds_probs = collections.defaultdict(lambda: [])
     for pred in post_process_candidates:
       preds_probs[pred['text']].append(pred['probability'])
@@ -135,7 +132,8 @@ def vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_que
       [odds[qid] * cof if 'lr_epoch_results' in model else odds[qid] for odds, model in zip(all_odds, models)])
 
   out_eval = main2(dataset, bagging_preds, bagging_odds)
-  print(out_eval)
+  utils.log('vote_with_post_processing')
+  utils.log(out_eval)
 
 
 def main():
