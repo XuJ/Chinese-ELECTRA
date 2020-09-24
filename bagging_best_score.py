@@ -45,15 +45,25 @@ def eval_bagging_best_score(data_dir):
         _qid = qa['id']
         qid_answers[_qid] = qa['answers']
         qid_questions[_qid] = qa['question']
+
+  all_nbest = filter_short_ans(all_nbest)
   vote1(dataset, all_nbest, all_odds, qid_answers)
   vote2(dataset, all_nbest, all_odds, qid_answers)
   vote_with_post_processing(dataset, all_nbest, all_odds, qid_answers, qid_questions, models)
 
 
-def vote1(dataset, all_nbest, all_odds, qid_answers):
-  """
+def filter_short_ans(all_nbest):
+  for nbest in all_nbest:
+    for qid, answers in nbest.items():
+      new_answers = []
+      for ans in answers:
+        if len(ans['text']) > 1:
+          new_answers.append(ans)
+      nbest[qid] = new_answers
+  return all_nbest
 
-  """
+
+def vote1(dataset, all_nbest, all_odds, qid_answers):
   bagging_preds = collections.OrderedDict()
   bagging_odds = collections.OrderedDict()
 
