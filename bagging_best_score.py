@@ -13,28 +13,31 @@ from finetune.qa.squad_official_eval import main2
 from util import utils
 
 
-def eval_bagging_best_score(data_dir, split):
+def eval_bagging_best_score(data_dir, split, task_name):
+  if task_name == 'ccks42ee':
+    model_name_part = 'electra_ensemble'
+  else:
+    model_name_part = 'electra_ensemble2'
   all_models = []
-  for task_idx in ['', 2]:
-    for batch_size in [24, 32]:
-      for max_seq_length in [384, 480, 512]:
-        for epoch in [2, 3]:
-          model_name = "electra_ensemble{}_{}_{}_{}".format(task_idx, batch_size, max_seq_length, epoch)
-          all_models.append(model_name)
-  models = [all_models[x] for x in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
+  for batch_size in [24, 32]:
+    for max_seq_length in [384, 480, 512]:
+      for epoch in [2, 3]:
+        model_name = "{}_{}_{}_{}".format(model_name_part, batch_size, max_seq_length, epoch)
+        all_models.append(model_name)
+  models = [all_models[x] for x in [3, 4, 5, 8, 9, 11]]
 
   all_nbest = []
   all_odds = []
   for dire in [os.path.join(data_dir, d) for d in models]:
-    all_nbest.append(utils.load_pickle((os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa',
-      'ccks42ee_{}_all_nbest.pkl'.format(split)))))
-    all_odds.append(utils.load_json((os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa',
-      'ccks42ee_{}_null_odds.json'.format(split)))))
+    all_nbest.append(utils.load_pickle((os.path.join(dire, 'models', 'electra_large', 'results', '{}_qa'.format(task_name),
+      '{}_{}_all_nbest.pkl'.format(task_name, split)))))
+    all_odds.append(utils.load_json((os.path.join(dire, 'models', 'electra_large', 'results', '{}_qa'.format(task_name),
+      '{}_{}_null_odds.json'.format(task_name, split)))))
 
   qid_answers = collections.OrderedDict()
   qid_questions = collections.OrderedDict()
   dataset = utils.load_json(
-    (os.path.join(data_dir, 'electra_ensemble', 'finetuning_data', 'ccks42ee', '{}.json'.format(split))))['data']
+    (os.path.join(data_dir, model_name_part, 'finetuning_data', task_name, '{}.json'.format(split))))['data']
   for article in dataset:
     for paragraph in article["paragraphs"]:
       for qa in paragraph['qas']:
@@ -43,7 +46,7 @@ def eval_bagging_best_score(data_dir, split):
         qid_questions[_qid] = qa['question']
 
   all_nbest = filter_short_ans(all_nbest)
-  output_dir = os.path.join(data_dir, 'electra_best', 'models', 'electra_large', 'results', 'ccks42bagging')
+  output_dir = os.path.join(data_dir, 'electra_best', 'models', 'electra_large', 'results', 'ccks42bagging', task_name)
 
   vote1(dataset, all_nbest, all_odds, qid_answers, split, output_dir)
   vote2(dataset, all_nbest, all_odds, qid_answers, split, output_dir)
@@ -175,8 +178,9 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", required=True, help="location of all models")
   parser.add_argument("--split", required=True, help="dataset: train/dev/eval dataset")
+  parser.add_argument("--task", required=True, help="task_name: ccks42ee/ccks42single/ccks42multi")
   args = parser.parse_args()
-  eval_bagging_best_score(args.dir, args.split)
+  eval_bagging_best_score(args.dir, args.split, args.task)
 
 
 if __name__ == '__main__':

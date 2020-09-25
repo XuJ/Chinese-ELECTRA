@@ -15,14 +15,37 @@ from functional import seq
 from finetune.qa.squad_official_eval import main2, normalize_answer
 from util import utils
 
+
+def filter_short_ans(nbest):
+  for qid, answers in nbest.items():
+    new_answers = []
+    for ans in answers:
+      if len(ans['text']) > 1:
+        new_answers.append(ans)
+    nbest[qid] = new_answers
+  return nbest
+
+
+def get_model_cof(model_name):
+  if "xlnet" in model_name:
+    return 0.7
+  else:
+    return 1
+
+
 data_dir = 'gs://ccks2'
 split = 'dev'
+task_name = 'ccks42ee'
 
+if task_name == 'ccks42ee':
+  model_name_part = 'electra_ensemble'
+else:
+  model_name_part = 'electra_ensemble2'
 full_models = []
 for batch_size in [24, 32]:
   for max_seq_length in [384, 480, 512]:
     for epoch in [2, 3]:
-      model_name = "electra_ensemble_{}_{}_{}".format(batch_size, max_seq_length, epoch)
+      model_name = "{}_{}_{}_{}".format(model_name_part, batch_size, max_seq_length, epoch)
       full_models.append(model_name)
 models = full_models
 
@@ -31,19 +54,19 @@ for d in models:
   dire = os.path.join(data_dir, d)
   try:
     prediction = collections.OrderedDict()
-    prediction['eval_all_nbest'] = utils.load_pickle((
-      os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa',
-        'ccks42ee_{}_all_nbest.pkl'.format(split))))
+    prediction['eval_all_nbest'] = filter_short_ans(utils.load_pickle((
+      os.path.join(dire, 'models', 'electra_large', 'results', '{}_qa'.format(task_name),
+        '{}_{}_all_nbest.pkl'.format(task_name, split)))))
     prediction['squad_null_odds'] = utils.load_json((
-      os.path.join(dire, 'models', 'electra_large', 'results', 'ccks42ee_qa',
-        'ccks42ee_{}_null_odds.json'.format(split))))
+      os.path.join(dire, 'models', 'electra_large', 'results', '{}_qa'.format(task_name),
+        '{}_{}_null_odds.json'.format(task_name, split))))
     models_predictions[d] = prediction
   except:
-    utils.log("error at {}".format(d))
+    utils.log("Error at loading all_nbest.pkl & null_odds.json for model {}".format(d))
     continue
 
 dataset = \
-  utils.load_json((os.path.join(data_dir, 'electra_ensemble', 'finetuning_data', 'ccks42ee', '{}.json'.format(split))))[
+  utils.load_json((os.path.join(data_dir, model_name_part, 'finetuning_data', task_name, '{}.json'.format(split))))[
     'data']
 qid_answers = collections.OrderedDict()
 for article in dataset:
@@ -55,13 +78,6 @@ for article in dataset:
         # For unanswerable questions, only correct answer is empty string
         gold_answers = ['']
       qid_answers[qid] = gold_answers
-
-
-def get_model_cof(model_name):
-  if "xlnet" in model_name:
-    return 0.7
-  else:
-    return 1
 
 
 class MyProblem(ea.Problem):  # 继承Problem父类
