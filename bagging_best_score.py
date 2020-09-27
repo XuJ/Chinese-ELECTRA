@@ -13,7 +13,7 @@ from finetune.qa.squad_official_eval import main2
 from util import utils
 
 
-def eval_bagging_best_score(data_dir, split, task_name):
+def eval_bagging_best_score(data_dir, split, task_name, selected_idx):
   if task_name == 'ccks42ee':
     model_name_part = 'electra_ensemble'
   else:
@@ -24,7 +24,7 @@ def eval_bagging_best_score(data_dir, split, task_name):
       for epoch in [2, 3]:
         model_name = "{}_{}_{}_{}".format(model_name_part, batch_size, max_seq_length, epoch)
         all_models.append(model_name)
-  models = [all_models[x] for x in [3, 4, 5, 8, 9, 11]]
+  models = [all_models[int(x)] for x in selected_idx.split('-')]
 
   all_nbest = []
   all_odds = []
@@ -67,13 +67,17 @@ def filter_short_ans(all_nbest):
 def vote1(dataset, all_nbest, all_odds, qid_answers, split, output_dir):
   bagging_preds = collections.OrderedDict()
   bagging_odds = collections.OrderedDict()
+  bagging_all_nbest = collections.OrderedDict()
 
   for qid in qid_answers:
     bagging_preds[qid] = \
       (seq([nbest[qid][0] for nbest in all_nbest]).sorted(key=lambda x: x['probability'])).list()[-1]['text']
+    bagging_all_nbest[qid] = \
+      [(seq([nbest[qid][0] for nbest in all_nbest]).sorted(key=lambda x: x['probability'])).list()[-1]]
     bagging_odds[qid] = np.mean([odds[qid] for odds in all_odds])
 
   utils.write_json(bagging_preds, os.path.join(output_dir, 'vote1', 'ccks42bagging_{}_preds.json'.format(split)))
+  utils.write_pickle(bagging_all_nbest, os.path.join(output_dir, 'vote1', 'ccks42bagging_{}_all_nbest.pkl'.format(split)))
   utils.write_json(bagging_odds, os.path.join(output_dir, 'vote1', 'ccks42bagging_{}_null_odds.json'.format(split)))
 
   if split in ['train', 'dev']:
@@ -179,8 +183,9 @@ def main():
   parser.add_argument("--dir", required=True, help="location of all models")
   parser.add_argument("--split", required=True, help="dataset: train/dev/eval dataset")
   parser.add_argument("--task", required=True, help="task_name: ccks42ee/ccks42single/ccks42multi")
+  parser.add_argument("--selected", default='0-1-2-3-4-5-6-7-8-9-10-11', help="selected_idx: selected model idx join by -")
   args = parser.parse_args()
-  eval_bagging_best_score(args.dir, args.split, args.task)
+  eval_bagging_best_score(args.dir, args.split, args.task, args.selected)
 
 
 if __name__ == '__main__':
